@@ -1,0 +1,195 @@
+{% extends "sonics_geoglows/base.html" %}
+{% load static %}
+{% load tethys_gizmos %}
+
+{% block import_gizmos %}
+    {% import_gizmo_dependency plotly_view %}
+{% endblock %}
+
+{% block title %}
+  {{ tethys_app.name }}
+{% endblock %}
+
+{% block app_icon %}
+  <img src="{% if 'http' in tethys_app.icon %}{{ tethys_app.icon }}{% else %}{% static tethys_app.icon %}{% endif %}" />
+{% endblock %}
+
+{% block app_title %}
+  {{ tethys_app.name }}
+{% endblock %}
+
+{% block app_navigation_items %}
+{% endblock %}
+
+{% block header_buttons %}
+  <div class="header-button glyphicon-button" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Data panel">
+    <a data-bs-toggle="modal" data-bs-target="#panel-modal"><i class="bi bi-graph-up"></i></a>
+  </div>
+  <div class="header-button glyphicon-button" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Help">
+    <a data-bs-toggle="modal" data-bs-target="#help-modal"><i class="bi bi-question-circle"></i></a>
+  </div>
+{% endblock %}
+
+{% block app_content %}
+  <div id="map-container"></div>
+{% endblock %}
+
+{% block after_app_content %}
+  <!-- Data Station Panel -->
+  <div class="modal fade" id="panel-modal" tabindex="-1" role="dialog" aria-labelledby="panel-modal-label">
+    <div class="modal-dialog  modal-dialog-centered modal-xl" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <div class="modal-title" id="panel-modal-label">
+            <div>
+              <img src="{% static 'sonics_geoglows/images/logos.png' %}" width="600px">
+            </div>
+            <div>
+              <div class="container">
+                <div class="row">
+                  <div class="col">
+                    <h5 id="panel-title-custom">Nombre de la estacion</h5>
+                  </div>
+                </div>
+                <div class="row" id="panel-station-information">
+                  <div class="col">
+                    <div class="row-station" id="station-comid-custom"> <b>COMID:</b> </div>
+                    <div class="row-station" id="station-river-custom"> <b>RIO:</b> </div>
+                  </div>
+                  <div class="col">
+                    <div class="row-station" id="station-latitude-custom"> <b>LATITUD:</b> </div>
+                    <div class="row-station" id="station-longitude-custom"> <b>LONGITUD:</b> </div>
+                  </div>
+                  <div class="col">
+                    <div class="row-station" id="station-locality1-custom"> <b>DEPARTAMENTO:</b> </div>
+                    <div class="row-station" id="station-locality2-custom"> <b>PROVINCIA:</b> </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+        </div>
+        <div id="modal-body-panel-custom" class="modal-body" style="min-width: 100% !important;">
+            <ul class="nav nav-tabs" id="panel-tab" role="tablist">
+              <li class="nav-item" role="presentation">
+                <button 
+                  class="nav-link active" 
+                  id="hydrograph-tab" 
+                  data-bs-toggle="tab" 
+                  data-bs-target="#hydrograph" 
+                  type="button" 
+                  role="tab" 
+                  aria-controls="hydrograph" 
+                  aria-selected="true"> Datos históricos </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button 
+                  class="nav-link" 
+                  id="visual-analisis-tab" 
+                  data-bs-toggle="tab" 
+                  data-bs-target="#visual-analisis" 
+                  type="button" 
+                  role="tab" 
+                  aria-controls="visual-analisis" 
+                  aria-selected="false">Análisis visual</button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button 
+                  class="nav-link" 
+                  id="metrics-tab" 
+                  data-bs-toggle="tab"
+                  data-bs-target="#metrics" 
+                  type="button" 
+                  role="tab" 
+                  aria-controls="metrics" 
+                  aria-selected="false"> Métricas </button>
+              </li>
+              <li class="nav-item" role="presentation">
+                <button 
+                    class="nav-link" 
+                    id="forecast-tab" 
+                    data-bs-toggle="tab"
+                    data-bs-target="#forecast" 
+                    type="button" 
+                    role="tab" 
+                    aria-controls="forecast" 
+                    aria-selected="false"> Pronóstico </button>
+            </li>
+              <li class="nav-item" role="presentation">
+                <button 
+                    class="nav-link" 
+                    id="corrected-forecast-tab" 
+                    data-bs-toggle="tab"
+                    data-bs-target="#corrected-forecast" 
+                    type="button" 
+                    role="tab" 
+                    aria-controls="corrected-forecast" 
+                    aria-selected="false"> Pronóstico corregido </button>
+              </li>
+            </ul>
+            <div class="tab-content" id="panel-tab-content">
+              <div class="tab-pane fade show active" id="hydrograph" role="tabpanel" aria-labelledby="hydrograph-tab"></div>
+              <div class="tab-pane fade" id="visual-analisis" role="tabpanel" aria-labelledby="visual-analisis-tab"></div>
+              <div class="tab-pane fade" id="metrics" role="tabpanel" aria-labelledby="metrics-tab"></div>
+              <div class="tab-pane fade" id="forecast" role="tabpanel" aria-labelledby="forecast-tab"></div>
+              <div class="tab-pane fade" id="corrected-forecast" role="tabpanel" aria-labelledby="corrected-forecast-tab"></div>
+            </div>
+        </div>
+      </div>
+    </div>
+  </div>
+{% endblock %}
+
+{% block env_vars %}
+  {{ block.super }}
+  <script>
+    // Server domain (DNS or IP:port)
+    const server = "{{ server|safe }}";
+    // App name or id
+    const app_name = "{{ app_name|safe }}"; 
+    // Available dates
+    const start_date = "{{ start_date|safe }}"; 
+    const end_date = "{{ end_date|safe }}"; 
+  </script>
+{% endblock %}
+
+{% block libraries_js %}
+  {{ block.super }}
+  <!-- Leaflet -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <!-- Selectize -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/css/selectize.default.min.css" rel="stylesheet"/>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" type="text/javascript"></script>
+  <!-- SHP and Jquery -->
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.js"></script>
+  <script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
+  <!-- Flatpickr -->
+  <link href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.9/dist/flatpickr.min.css" rel="stylesheet" >
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.9/dist/flatpickr.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.9/dist/l10n/es.min.js"></script>
+{% endblock %}
+
+{% block content_dependent_styles %}
+  {{ block.super }}
+  <link href="{% static 'sonics_geoglows/css/main.css' %}" rel="stylesheet"/>
+  <link href="{% static 'sonics_geoglows/css/map.css' %}" rel="stylesheet"/>
+  <link href="{% static 'sonics_geoglows/css/panel.css' %}" rel="stylesheet"/>
+  <link href="{% static 'sonics_geoglows/css/loader.css' %}" rel="stylesheet"/>
+  <link href="{% static 'sonics_geoglows/css/control.css' %}" rel="stylesheet"/>
+{% endblock %}
+
+{% block scripts %}
+  {{ block.super }}
+  <script src="{% static 'sonics_geoglows/js/icons.js' %}" type="text/javascript"></script>
+  <script src="{% static 'sonics_geoglows/js/panel.js' %}" type="text/javascript"></script>
+  <script src="{% static 'sonics_geoglows/js/map.js' %}" type="text/javascript"></script>
+  <script src="{% static 'sonics_geoglows/js/warnings.js' %}" type="text/javascript"></script>
+  <script src="{% static 'sonics_geoglows/js/selboxes.js' %}" type="text/javascript"></script>
+  <script src="{% static 'sonics_geoglows/js/searches.js' %}" type="text/javascript"></script>
+  <script src="{% static 'sonics_geoglows/js/shapefiles.js' %}" type="text/javascript"></script>
+  <script src="{% static 'sonics_geoglows/js/control.js' %}" type="text/javascript"></script>
+{% endblock %}
